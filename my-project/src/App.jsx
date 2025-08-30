@@ -71,73 +71,116 @@ function AuthScreen() {
     );
 }
 
-// --- Dashboard Component ---
 function Dashboard({ user }) {
-    const [sessions, setSessions] = useState([]);
-    const [selectedSession, setSelectedSession] = useState(null);
-    const [journalEntries, setJournalEntries] = useState([]);
-    const [coachPlans, setCoachPlans] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [chats, setChats] = useState([]);  // ⬅️ Changed from coachPlans to chats
 
-    const sessionDetailRef = useRef(null);
+  const sessionDetailRef = useRef(null);
+  const BACKEND_URL = "http://127.0.0.1:8001";
 
-    const BACKEND_URL = "http://127.0.0.1:8001";
+  const fetchData = async (endpoint, setter) => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`${BACKEND_URL}/${endpoint}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setter(await response.json());
+      } else {
+        console.error(`Failed to fetch ${endpoint}`);
+        setter([]);
+      }
+    } catch (error) {
+      console.error(`Error fetching ${endpoint}:`, error);
+    }
+  };
 
-    const fetchData = async (endpoint, setter) => {
-        if (!user) return;
-        try {
-            const token = await user.getIdToken();
-            const response = await fetch(`${BACKEND_URL}/${endpoint}/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                setter(await response.json());
-            } else {
-                console.error(`Failed to fetch ${endpoint}`);
-                setter([]);
-            }
-        } catch (error) {
-            console.error(`Error fetching ${endpoint}:`, error);
-        }
-    };
+  useEffect(() => {
+    fetchData("get-sessions", setSessions);
+    fetchData("get-journal-entries", setJournalEntries);
+    fetchData("get-chats", setChats);  // ⬅️ Changed
+  }, [user]);
 
-    useEffect(() => {
-        fetchData('get-sessions', setSessions);
-        fetchData('get-journal-entries', setJournalEntries);
-        fetchData('get-plans', setCoachPlans);
-    }, [user]);
+  const handleSelectSession = (session) => {
+    setSelectedSession(session);
+    if (sessionDetailRef.current) {
+      sessionDetailRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
-    const handleSelectSession = (session) => {
-        setSelectedSession(session);
-        if (sessionDetailRef.current) {
-            sessionDetailRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <nav className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+                ZenFlow
+              </h1>
+            </div>
+            <div className="flex items-center">
+              <span className="text-gray-600 mr-4 hidden sm:block">
+                {user.email}
+              </span>
+              <button
+                onClick={() => signOut(auth)}
+                className="bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:scale-105 transition-transform"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-    return (
-        <div className="min-h-screen bg-gray-50 font-sans">
-            <nav className="bg-white shadow-sm sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="flex justify-between h-16"><div className="flex items-center"><h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">ZenFlow</h1></div><div className="flex items-center"><span className="text-gray-600 mr-4 hidden sm:block">{user.email}</span><button onClick={() => signOut(auth)} className="bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:scale-105 transition-transform">Logout</button></div></div></div>
-            </nav>
-            <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* UPDATED prop: onSelectSession */}
-                        <SessionHistory sessions={sessions} onSelectSession={handleSelectSession} />
-                        {/* NEW: Add ref to the component */}
-                        {selectedSession && <SessionDetailView ref={sessionDetailRef} session={selectedSession} onClose={() => setSelectedSession(null)} />}
-                        <JournalHistory entries={journalEntries} />
-                        <CoachHistory plans={coachPlans} />
-                    </div>
-                    <div className="space-y-8">
-                        <VideoAnalysis onAnalysisComplete={() => fetchData('get-sessions', setSessions)} user={user} backendUrl={BACKEND_URL} />
-                        <Journal onEntrySaved={() => fetchData('get-journal-entries', setJournalEntries)} user={user} backendUrl={BACKEND_URL} />
-                        <AICoach onPlanGenerated={() => fetchData('get-plans', setCoachPlans)} user={user} backendUrl={BACKEND_URL} />
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
+      <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Side */}
+          <div className="lg:col-span-2 space-y-8">
+            <SessionHistory
+              sessions={sessions}
+              onSelectSession={handleSelectSession}
+            />
+            {selectedSession && (
+              <SessionDetailView
+                ref={sessionDetailRef}
+                session={selectedSession}
+                onClose={() => setSelectedSession(null)}
+              />
+            )}
+            <JournalHistory entries={journalEntries} />
+            <CoachHistory plans={chats} /> {/* ⬅️ now passing chat data */}
+          </div>
+
+          {/* Right Side */}
+          <div className="space-y-8">
+            <VideoAnalysis
+              onAnalysisComplete={() => fetchData("get-sessions", setSessions)}
+              user={user}
+              backendUrl={BACKEND_URL}
+            />
+            <Journal
+              onEntrySaved={() =>
+                fetchData("get-journal-entries", setJournalEntries)
+              }
+              user={user}
+              backendUrl={BACKEND_URL}
+            />
+            <AICoach
+              refreshChats={() => fetchData("get-chats", setChats)} // ⬅️ refresh chats
+              user={user}
+              backendUrl={BACKEND_URL}
+            />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 }
+
 
 function VideoAnalysis({ onAnalysisComplete, user, backendUrl }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -348,36 +391,62 @@ function Journal({ user, backendUrl, onEntrySaved }) {
     );
 }
 
-function AICoach({ user, backendUrl, onPlanGenerated }) {
-    const [query, setQuery] = useState('');
-    const [response, setResponse] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!query.trim()) return;
-        setIsLoading(true);
-        setResponse(null);
-        const token = await user.getIdToken();
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000);
-            const res = await fetch(`${backendUrl}/ask-gemini/`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query_text: query }), signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (res.ok) {
-                setResponse(await res.json());
-                onPlanGenerated();
-                setQuery('');
-            } else {
-                setResponse({ response_text: "Sorry, the AI coach is unavailable right now. Please try again." });
-            }
-        } catch (err) { setResponse({ response_text: "Error: The request timed out or could not connect to the AI coach." }); } 
-        finally { setIsLoading(false); }
-    };
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-lg"><h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center"><CoachIcon /> Ask Your AI Coach</h2><form onSubmit={handleSubmit}><textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask for a weekly plan, or a suggestion..." className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400" rows="3"></textarea><button type="submit" disabled={isLoading} className="w-full mt-4 bg-gradient-to-r from-sky-500 to-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:bg-gray-400 disabled:from-gray-400 disabled:scale-100">{isLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div> : 'Ask Zen'}</button></form>
-        {response && <div className="mt-6 prose max-w-none prose-p:my-2 prose-h3:mb-2 prose-h3:mt-4 prose-ul:my-2"><ReactMarkdown>{response.response_text}</ReactMarkdown></div>}</div>
-    );
+function AICoach({ user, backendUrl }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [chatId, setChatId] = useState(() => crypto.randomUUID());
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+
+    const token = await user.getIdToken();
+    const res = await fetch(`${backendUrl}/chat-gemini/`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, messages: newMessages }),
+    });
+    const data = await res.json();
+    setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
+    setIsLoading(false);
+  };
+
+  const endChat = async () => {
+    const token = await user.getIdToken();
+    await fetch(`${backendUrl}/end-chat/`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId }),
+    });
+    alert("Chat saved and ended!");
+    setMessages([]);
+    setChatId(crypto.randomUUID());
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-4 flex items-center">💬 AI Coach</h2>
+      <div className="max-h-64 overflow-y-auto mb-4 p-2 border rounded-lg bg-gray-50">
+        {messages.map((m, idx) => (
+          <div key={idx} className={`my-2 p-2 rounded-lg max-w-xs ${m.role === 'user' ? 'bg-blue-100 self-end ml-auto' : 'bg-gray-200'}`}>
+            {m.content}
+          </div>
+        ))}
+        {isLoading && <p className="text-gray-500">AI is typing...</p>}
+      </div>
+      <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="w-full p-2 border rounded-lg"></textarea>
+      <div className="flex gap-2 mt-2">
+        <button onClick={sendMessage} className="flex-1 bg-blue-500 text-white py-2 rounded-lg">Send</button>
+        <button onClick={endChat} className="bg-red-500 text-white py-2 rounded-lg">End Chat</button>
+      </div>
+    </div>
+  );
 }
+
 
 function SentimentIndicator({ label, score }) {
     const sentiment = label?.toUpperCase();
@@ -424,32 +493,45 @@ function JournalHistory({ entries }) {
 }
 
 function CoachHistory({ plans }) {
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center">
-                <CoachHistoryIcon /> AI Coach History
-            </h2>
-            <div className="space-y-6 max-h-[40rem] overflow-y-auto pr-2">
-                {plans.length > 0 ? (
-                    plans.map(plan => (
-                        <div key={plan.id} className="border rounded-lg p-4">
-                            <p className="font-semibold text-gray-500 text-sm mb-2">
-                                {new Date(plan.created_date).toLocaleString()}
-                            </p>
-                            <div className="bg-gray-100 p-3 rounded-lg">
-                                <p className="font-bold text-gray-800">You asked:</p>
-                                <p className="text-gray-700 italic">"{plan.query_text}"</p>
-                            </div>
-                            <div className="mt-4 prose prose-sm max-w-none">
-                                <p className="font-bold text-gray-800">Zen replied:</p>
-                                <ReactMarkdown>{plan.plan_data.response_text}</ReactMarkdown>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <p className="text-center text-gray-500 py-4">No conversations with the AI coach yet.</p>
-                )}
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center">
+        <CoachHistoryIcon /> Chat History
+      </h2>
+      <div className="space-y-6 max-h-[40rem] overflow-y-auto pr-2">
+        {plans.length > 0 ? (
+          plans.map(chat => (
+            <div key={chat.id} className="border rounded-lg p-4">
+              <p className="font-semibold text-gray-500 text-sm mb-2">
+                {chat.ended ? "✅ Chat Ended" : "🟢 Ongoing Chat"} –{" "}
+                {chat.messages && chat.messages.length > 0
+                  ? new Date(chat.messages[0].timestamp || Date.now()).toLocaleString()
+                  : "Unknown time"}
+              </p>
+
+              <div className="space-y-2">
+                {chat.messages &&
+                  chat.messages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-2 rounded-lg max-w-[75%] ${
+                        msg.role === "user"
+                          ? "bg-blue-100 ml-auto"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-500 py-4">
+            No chat history with the AI coach yet.
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
