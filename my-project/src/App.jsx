@@ -39,7 +39,6 @@ export default function App() {
     return user ? <Dashboard user={user} /> : <AuthScreen />;
 }
 
-// --- Authentication Screen Component (No Changes) ---
 function AuthScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -75,7 +74,7 @@ function Dashboard({ user }) {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [journalEntries, setJournalEntries] = useState([]);
-  const [chats, setChats] = useState([]);  // ⬅️ Changed from coachPlans to chats
+  const [chats, setChats] = useState([]);
 
   const sessionDetailRef = useRef(null);
   const BACKEND_URL = "http://127.0.0.1:8001";
@@ -181,7 +180,6 @@ function Dashboard({ user }) {
   );
 }
 
-
 function VideoAnalysis({ onAnalysisComplete, user, backendUrl }) {
     const [isLoading, setIsLoading] = useState(false);
     const [uploadError, setUploadError] = useState('');
@@ -224,13 +222,10 @@ function VideoAnalysis({ onAnalysisComplete, user, backendUrl }) {
         <div className="bg-white p-6 rounded-xl shadow-lg">
             <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center"><UploadIcon /> Analyze a Session</h2>
             <div className="flex flex-col space-y-4">
-                {/* The label is now just for appearance */}
                 <label htmlFor="file-upload" className="w-full cursor-pointer bg-gray-100 text-gray-700 rounded-lg p-4 text-center border-2 border-dashed border-gray-300 hover:border-purple-400 hover:bg-purple-50 transition-colors">
                     {selectedFile ? selectedFile.name : "Choose a video file..."}
                 </label>
-                {/* NEW: Add ref to the input and hide it */}
                 <input id="file-upload" type="file" onChange={handleFileChange} ref={fileInputRef} className="hidden"/>
-                {/* UPDATED: Call the new combined handler */}
                 <button onClick={handleAnalyzeClick} disabled={isLoading} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:bg-gray-400 disabled:from-gray-400 disabled:scale-100">
                     {isLoading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div> : 'Analyze Session'}
                 </button>
@@ -355,7 +350,6 @@ function Journal({ user, backendUrl, onEntrySaved }) {
         
         try {
             const controller = new AbortController();
-            // Increased timeout to 2 minutes
             const timeoutId = setTimeout(() => controller.abort(), 120000); 
             const response = await fetch(`${backendUrl}/add-journal-entry/`, { 
                 method: 'POST', 
@@ -446,7 +440,6 @@ function AICoach({ user, backendUrl }) {
     </div>
   );
 }
-
 
 function SentimentIndicator({ label, score }) {
     const sentiment = label?.toUpperCase();

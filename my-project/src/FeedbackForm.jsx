@@ -10,7 +10,7 @@ export default function FeedbackForm({ sessionId, user, onSubmit }) {
     const [feedback, setFeedback] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState('');
-    const BACKEND_URL = "http://127.0.0.1:8000";
+    const BACKEND_URL = "http://127.0.0.1:8001";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
